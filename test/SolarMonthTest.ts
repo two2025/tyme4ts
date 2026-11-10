@@ -1,5 +1,5 @@
 import {suite, test} from '@testdeck/mocha';
-import {SolarMonth} from '../lib';
+import {SolarDay, SolarMonth} from '../lib';
 import {equal} from 'assert';
 
 @suite
@@ -55,5 +55,17 @@ class SolarMonthTest {
         equal(m.next(-10).toString(), '2022年12月');
         equal(m.next(24).toString(), '2025年10月');
         equal(m.next(-24).toString(), '2021年10月');
+    }
+
+    @test
+    test5(): void {
+        // 1582年10月公历改革，5日-14日不存在
+        const m: SolarMonth = SolarMonth.fromYm(1582, 10);
+        const days: SolarDay[] = m.getDays();
+        equal(days.length, 21);
+        equal(days[0].toString(), '1582年10月1日');
+        equal(days[3].toString(), '1582年10月4日');
+        equal(days[4].toString(), '1582年10月15日');
+        equal(days[20].toString(), '1582年10月31日');
     }
 }

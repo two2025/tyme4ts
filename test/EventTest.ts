@@ -75,6 +75,14 @@ class EventTest {
         EventManager.remove('生日');
 
         EventManager.update('农历生日', Event.builder().lunarDay(4, 21, 0).startYear(1986).build());
+
+        EventManager.update('单', Event.builder().solarDay(11, 9, 0).startYear(2026).build());
+
+        // 名称含正则特殊字符与替换特殊符号
+        EventManager.update('a$b(c)*.日', Event.builder().solarDay(6, 18, 0).startYear(2000).build());
+
+        // 2月30不存在，负顺延越界（2月30-31越界为负），应返回null
+        EventManager.update('越界事件', Event.builder().solarDay(2, 31, -31).startYear(2000).build());
     }
 
     @test
@@ -140,6 +148,55 @@ class EventTest {
         const d: SolarDay | null = e.getSolarDay(2018);
         ok(d);
         equal(d.toString(), '2018年3月26日');
+    }
+
+    @test
+    test4(): void {
+        this.init();
+
+        // 事件名为单个字符
+        const e: Event | null = Event.fromName('单');
+        ok(e);
+
+        const d: SolarDay | null = e.getSolarDay(2026);
+        ok(d);
+        equal(d.toString(), '2026年11月9日');
+    }
+
+    @test
+    test5(): void {
+        this.init();
+
+        // 「全」是「全国中小学生安全教育日」的前缀，不应误匹配
+        const e: Event | null = Event.fromName('全');
+        ifError(e);
+    }
+
+    @test
+    test6(): void {
+        this.init();
+
+        // 名称含正则特殊字符与替换特殊符号
+        const e: Event | null = Event.fromName('a$b(c)*.日');
+        ok(e);
+
+        const d: SolarDay | null = e.getSolarDay(2026);
+        ok(d);
+        equal(d.toString(), '2026年6月18日');
+
+        // 更新后再次查找、删除后不可查
+        EventManager.remove('a$b(c)*.日');
+        ifError(Event.fromName('a$b(c)*.日'));
+    }
+
+    @test
+    test7(): void {
+        this.init();
+
+        // 顺延导致日期越界时返回null
+        const e: Event | null = Event.fromName('越界事件');
+        ok(e);
+        ifError(e.getSolarDay(2026));
     }
 
 }

@@ -20,6 +20,6 @@ exec('tsc', () => {
         writeFileSync(minJs, minText.replace('"use strict";', banner + '"use strict";if(typeof exports===\'undefined\')var exports={};'));
         // for WeChat
         copyFileSync(minJs, libDir + '/index.cjs.js');
-        console.log('js build completed')
+        console.log('js build completed');
     });
 });

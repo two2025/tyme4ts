@@ -307,7 +307,7 @@ export abstract class AbstractMonth extends MonthUnit {
     }
 
     getWeekCount(start: number): number {
-        return Math.ceil((this.indexOf(this.getFirstDay().getWeek().getIndex() - start, 7) + this.getDayCount()) / 7);
+        return ~~((this.indexOf(this.getFirstDay().getWeek().getIndex() - start, 7) + this.getDayCount() + 6) / 7);
     }
 
     /**
@@ -586,6 +586,10 @@ export class TwentyEightStar extends LoopTyme {
         return new TwentyEightStar(name);
     }
 
+    static fromDay(day: SixtyCycle, week: Week): TwentyEightStar {
+        return TwentyEightStar.fromIndex(10 + 8 * week.getIndex() - 7 * day.getEarthBranch().getIndex());
+    }
+
     next(n: number): TwentyEightStar {
         return TwentyEightStar.fromIndex(this.nextIndex(n));
     }
@@ -696,6 +700,16 @@ export class Direction extends LoopTyme {
 
     static fromName(name: string): Direction {
         return new Direction(name);
+    }
+
+    static monthJupiter(month: SixtyCycle): Direction {
+        const n: number = [7, -1, 1, 3][month.getEarthBranch().next(-2).getIndex() % 4];
+        return n === -1 ? month.getHeavenStem().getDirection() : Direction.fromIndex(n);
+    }
+
+    static dayJupiter(yearJupiter: Direction, day: SixtyCycle): Direction {
+        const index: number = day.getIndex();
+        return index % 12 < 6 ? Element.fromIndex(~~(index / 12)).getDirection() : yearJupiter;
     }
 
     next(n: number): Direction {
@@ -1949,6 +1963,18 @@ export class TwelveStar extends LoopTyme {
         return new TwelveStar(name);
     }
 
+    protected static fromSixtyCycle(parent: SixtyCycle, base: SixtyCycle): TwelveStar {
+        return TwelveStar.fromIndex(base.getEarthBranch().getIndex() + (8 - parent.getEarthBranch().getIndex() % 6) * 2);
+    }
+
+    static fromDay(month: SixtyCycle, day: SixtyCycle): TwelveStar {
+        return TwelveStar.fromSixtyCycle(month, day);
+    }
+
+    static fromHour(day: SixtyCycle, hour: SixtyCycle): TwelveStar {
+        return TwelveStar.fromSixtyCycle(day, hour);
+    }
+
     next(n: number): TwelveStar {
         return TwelveStar.fromIndex(this.nextIndex(n));
     }
@@ -2239,9 +2265,7 @@ export class LunarMonth extends AbstractLeapMonth {
     }
 
     getJupiterDirection(): Direction {
-        const sixtyCycle: SixtyCycle = this.getSixtyCycle();
-        const n: number = [7, -1, 1, 3][sixtyCycle.getEarthBranch().next(-2).getIndex() % 4];
-        return n === -1 ? sixtyCycle.getHeavenStem().getDirection() : Direction.fromIndex(n);
+        return Direction.monthJupiter(this.getSixtyCycle());
     }
 
     getFetus(): FetusMonth | null {
@@ -2396,8 +2420,7 @@ export class LunarDay extends AbstractDay {
     }
 
     getJupiterDirection(): Direction {
-        const index: number = this.getSixtyCycle().getIndex();
-        return index % 12 < 6 ? Element.fromIndex(~~(index / 12)).getDirection() : this.getLunarMonth().getLunarYear().getJupiterDirection();
+        return Direction.dayJupiter(this.getLunarMonth().getLunarYear().getJupiterDirection(), this.getSixtyCycle());
     }
 
     getFetusDay(): FetusDay {
@@ -2421,7 +2444,7 @@ export class LunarDay extends AbstractDay {
     }
 
     getTwentyEightStar(): TwentyEightStar {
-        return TwentyEightStar.fromIndex([10, 18, 26, 6, 14, 22, 2][this.getSolarDay().getWeek().getIndex()]).next(-7 * this.getSixtyCycle().getEarthBranch().getIndex());
+        return TwentyEightStar.fromDay(this.getSixtyCycle(), this.getWeek());
     }
 
     getFestival(): LunarFestival | null {
@@ -2558,9 +2581,7 @@ export class SixtyCycleMonth extends AbstractTyme {
     }
 
     getJupiterDirection(): Direction {
-        const sixtyCycle: SixtyCycle = this.getSixtyCycle();
-        const n: number = [7, -1, 1, 3][sixtyCycle.getEarthBranch().next(-2).getIndex() % 4];
-        return n === -1 ? sixtyCycle.getHeavenStem().getDirection() : Direction.fromIndex(n);
+        return Direction.monthJupiter(this.month);
     }
 }
 
@@ -2617,11 +2638,11 @@ export class SixtyCycleDay extends AbstractTyme {
     }
 
     getDuty(): Duty {
-        return Duty.fromIndex(this.getSixtyCycle().getEarthBranch().getIndex() - this.getMonth().getEarthBranch().getIndex());
+        return Duty.fromIndex(this.day.getEarthBranch().getIndex() - this.getMonth().getEarthBranch().getIndex());
     }
 
     getTwelveStar(): TwelveStar {
-        return TwelveStar.fromIndex(this.getSixtyCycle().getEarthBranch().getIndex() + (8 - this.getMonth().getEarthBranch().getIndex() % 6) * 2);
+        return TwelveStar.fromDay(this.getMonth(), this.day);
     }
 
     getNineStar(): NineStar {
@@ -2629,8 +2650,7 @@ export class SixtyCycleDay extends AbstractTyme {
     }
 
     getJupiterDirection(): Direction {
-        const index: number = this.getSixtyCycle().getIndex();
-        return index % 12 < 6 ? Element.fromIndex(~~(index / 12)).getDirection() : this.month.getSixtyCycleYear().getJupiterDirection();
+        return Direction.dayJupiter(this.month.getSixtyCycleYear().getJupiterDirection(), this.day);
     }
 
     getFetusDay(): FetusDay {
@@ -2638,7 +2658,7 @@ export class SixtyCycleDay extends AbstractTyme {
     }
 
     getTwentyEightStar(): TwentyEightStar {
-        return TwentyEightStar.fromIndex([10, 18, 26, 6, 14, 22, 2][this.solarDay.getWeek().getIndex()]).next(-7 * this.day.getEarthBranch().getIndex());
+        return TwentyEightStar.fromDay(this.day, this.solarDay.getWeek());
     }
 
     getGods(): God[] {
@@ -2666,7 +2686,7 @@ export class SixtyCycleDay extends AbstractTyme {
     }
 
     getThreePillars(): ThreePillars {
-        return new ThreePillars(this.getYear(), this.getMonth(), this.getSixtyCycle());
+        return new ThreePillars(this.getYear(), this.getMonth(), this.day);
     }
 }
 
@@ -2694,7 +2714,7 @@ export class SixtyCycleHour extends AbstractTyme {
 
         const term: SolarTerm = solarTime.getTerm();
         let index: number = term.getIndex() - 3;
-        if (index < 0 && term.getJulianDay().getSolarTime().isAfter(SolarTerm.fromIndex(solarYear, 3).getJulianDay().getSolarTime())) {
+        if (index < 0 && term.getJulianDay().getSolarTime().isAfter(springSolarTime)) {
             index += 24;
         }
         const d: SixtyCycle = lunarDay.getSixtyCycle();
@@ -2749,7 +2769,7 @@ export class SixtyCycleHour extends AbstractTyme {
     }
 
     getTwelveStar(): TwelveStar {
-        return TwelveStar.fromIndex(this.hour.getEarthBranch().getIndex() + (8 - this.getDay().getEarthBranch().getIndex() % 6) * 2);
+        return TwelveStar.fromHour(this.getDay(), this.hour);
     }
 
     getNineStar(): NineStar {
@@ -2944,7 +2964,7 @@ export class LunarHour extends SecondUnit {
     }
 
     getTwelveStar(): TwelveStar {
-        return TwelveStar.fromIndex(this.getSixtyCycle().getEarthBranch().getIndex() + (8 - this.getSixtyCycleHour().getDay().getEarthBranch().getIndex() % 6) * 2);
+        return TwelveStar.fromHour(this.getSixtyCycleHour().getDay(), this.getSixtyCycle());
     }
 
     getNineStar(): NineStar {
@@ -4037,6 +4057,16 @@ export class SolarMonth extends AbstractMonth {
 
     getDays(): SolarDay[] {
         const l: SolarDay[] = [];
+        // 1582年10月公历改革，5日-14日不存在
+        if (this.year === 1582 && this.month === 10) {
+            for (let i: number = 1; i <= 4; i++) {
+                l.push(SolarDay.fromYmd(this.year, this.month, i));
+            }
+            for (let i: number = 15; i <= 31; i++) {
+                l.push(SolarDay.fromYmd(this.year, this.month, i));
+            }
+            return l;
+        }
         for (let i: number = 1, j: number = this.getDayCount(); i <= j; i++) {
             l.push(SolarDay.fromYmd(this.year, this.month, i));
         }
@@ -5890,7 +5920,7 @@ export class Event extends AbstractCulture {
     }
 
     static fromName(name: string): Event | null {
-        const matcher: RegExpExecArray | null = new RegExp(EventManager.REGEX + `(${name})`, 'g').exec(EventManager.DATA);
+        const matcher: RegExpExecArray | null = EventManager.getRegex(name).exec(EventManager.DATA);
         return matcher ? new Event(name, matcher[1]) : null;
     }
 
@@ -5949,7 +5979,7 @@ export class Event extends AbstractCulture {
 
     static all(): Event[] {
         const l: Event[] = [];
-        const reg: RegExp = new RegExp(EventManager.REGEX + `(.[^@]+)`, 'g');
+        const reg: RegExp = new RegExp(`(@[0-9A-Za-z_]{8})([^@]+)(?=@|$)`, 'g');
         let matcher: RegExpExecArray | null;
         while (matcher = reg.exec(EventManager.DATA)) {
             l.push(new Event(matcher[2], matcher[1]));
@@ -6000,7 +6030,11 @@ export class Event extends AbstractCulture {
             if (delay === 0) {
                 return null;
             } else if (delay < 0) {
-                return isLunar ? LunarDay.fromYmd(y, m, d + delay).getSolarDay() : SolarDay.fromYmd(y, m, d + delay);
+                const day: number = d + delay;
+                if (day > 0 && day <= lastDay) {
+                    return isLunar ? LunarDay.fromYmd(y, m, day).getSolarDay() : SolarDay.fromYmd(y, m, day);
+                }
+                return null;
             }
             return isLunar ? LunarDay.fromYmd(y, m, lastDay).getSolarDay().next(delay) : SolarDay.fromYmd(y, m, lastDay).next(delay);
         }
@@ -6125,20 +6159,37 @@ class EventBuilder {
 }
 
 export class EventManager {
-    static REGEX: string = '(@[0-9A-Za-z_]{8})';
+    /**
+     * 数据匹配的正则表达式模板
+     *
+     * 名称后必须紧跟下一个事件的数据头（@）或字符串结尾，避免「全」匹配到「全国中小学生安全教育日」
+     */
+    static REGEX: string = '(@[0-9A-Za-z_]{8})(%s)(?=@|$)';
     static DATA: string = '';
     static CHARS: string = '0123456789ABCDEFGHIJKLMNOPQRSTU_VWXYZabcdefghijklmnopqrstuvwxyz';
+
+    /**
+     * 转义正则表达式中的特殊字符，等价于 Java 的 Pattern.quote
+     */
+    static quote(s: string): string {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    static getRegex(name: string): RegExp {
+        // 使用函数形式的替换，避免转义后的名称中包含 $ 系列特殊模式被二次解释
+        return new RegExp(EventManager.REGEX.replace('%s', () => EventManager.quote(name)), 'g');
+    }
 
     static remove(name: string): void {
         EventManager.saveOrUpdate(name, '');
     }
 
     static saveOrUpdate(name: string, data: string): void {
-        const o: string = EventManager.REGEX + name;
-        const reg: RegExp = new RegExp(o, 'g');
-        const matcher: RegExpExecArray | null = reg.exec(EventManager.DATA);
-        if (matcher) {
-            EventManager.DATA = EventManager.DATA.replace(reg, data);
+        const reg: RegExp = EventManager.getRegex(name);
+        // 转义替换串中的 $，等价于 Java 的 Matcher.quoteReplacement
+        const replacement: string = data.replace(/\$/g, '$$');
+        if (reg.test(EventManager.DATA)) {
+            EventManager.DATA = EventManager.DATA.replace(reg, replacement);
         } else {
             EventManager.DATA += data;
         }

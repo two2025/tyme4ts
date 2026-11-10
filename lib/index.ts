@@ -307,7 +307,7 @@ export abstract class AbstractMonth extends MonthUnit {
     }
 
     getWeekCount(start: number): number {
-        return ~~((this.indexOf(this.getFirstDay().getWeek().getIndex() - start, 7) + this.getDayCount() + 6) / 7);
+        return Math.ceil((this.indexOf(this.getFirstDay().getWeek().getIndex() - start, 7) + this.getDayCount()) / 7);
     }
 
     /**
@@ -4057,7 +4057,6 @@ export class SolarMonth extends AbstractMonth {
 
     getDays(): SolarDay[] {
         const l: SolarDay[] = [];
-        // 1582年10月公历改革，5日-14日不存在
         if (this.year === 1582 && this.month === 10) {
             for (let i: number = 1; i <= 4; i++) {
                 l.push(SolarDay.fromYmd(this.year, this.month, i));
@@ -5979,7 +5978,7 @@ export class Event extends AbstractCulture {
 
     static all(): Event[] {
         const l: Event[] = [];
-        const reg: RegExp = new RegExp(`(@[0-9A-Za-z_]{8})([^@]+)(?=@|$)`, 'g');
+        const reg: RegExp = new RegExp(EventManager.REGEX.replace('%s', '[^@]+'), 'g');
         let matcher: RegExpExecArray | null;
         while (matcher = reg.exec(EventManager.DATA)) {
             l.push(new Event(matcher[2], matcher[1]));
@@ -6159,25 +6158,12 @@ class EventBuilder {
 }
 
 export class EventManager {
-    /**
-     * 数据匹配的正则表达式模板
-     *
-     * 名称后必须紧跟下一个事件的数据头（@）或字符串结尾，避免「全」匹配到「全国中小学生安全教育日」
-     */
     static REGEX: string = '(@[0-9A-Za-z_]{8})(%s)(?=@|$)';
     static DATA: string = '';
     static CHARS: string = '0123456789ABCDEFGHIJKLMNOPQRSTU_VWXYZabcdefghijklmnopqrstuvwxyz';
 
-    /**
-     * 转义正则表达式中的特殊字符，等价于 Java 的 Pattern.quote
-     */
-    static quote(s: string): string {
-        return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
     static getRegex(name: string): RegExp {
-        // 使用函数形式的替换，避免转义后的名称中包含 $ 系列特殊模式被二次解释
-        return new RegExp(EventManager.REGEX.replace('%s', () => EventManager.quote(name)), 'g');
+        return new RegExp(EventManager.REGEX.replace('%s', () => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), 'g');
     }
 
     static remove(name: string): void {
@@ -6186,10 +6172,8 @@ export class EventManager {
 
     static saveOrUpdate(name: string, data: string): void {
         const reg: RegExp = EventManager.getRegex(name);
-        // 转义替换串中的 $，等价于 Java 的 Matcher.quoteReplacement
-        const replacement: string = data.replace(/\$/g, '$$');
         if (reg.test(EventManager.DATA)) {
-            EventManager.DATA = EventManager.DATA.replace(reg, replacement);
+            EventManager.DATA = EventManager.DATA.replace(reg, () => data);
         } else {
             EventManager.DATA += data;
         }

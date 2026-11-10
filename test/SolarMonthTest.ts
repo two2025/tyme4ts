@@ -59,7 +59,6 @@ class SolarMonthTest {
 
     @test
     test5(): void {
-        // 1582年10月公历改革，5日-14日不存在
         const m: SolarMonth = SolarMonth.fromYm(1582, 10);
         const days: SolarDay[] = m.getDays();
         equal(days.length, 21);

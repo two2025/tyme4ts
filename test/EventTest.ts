@@ -78,10 +78,9 @@ class EventTest {
 
         EventManager.update('单', Event.builder().solarDay(11, 9, 0).startYear(2026).build());
 
-        // 名称含正则特殊字符与替换特殊符号
         EventManager.update('a$b(c)*.日', Event.builder().solarDay(6, 18, 0).startYear(2000).build());
+        EventManager.update('a$&b$1', Event.builder().solarDay(7, 8, 0).startYear(2000).build());
 
-        // 2月30不存在，负顺延越界（2月30-31越界为负），应返回null
         EventManager.update('越界事件', Event.builder().solarDay(2, 31, -31).startYear(2000).build());
     }
 
@@ -154,7 +153,6 @@ class EventTest {
     test4(): void {
         this.init();
 
-        // 事件名为单个字符
         const e: Event | null = Event.fromName('单');
         ok(e);
 
@@ -167,7 +165,6 @@ class EventTest {
     test5(): void {
         this.init();
 
-        // 「全」是「全国中小学生安全教育日」的前缀，不应误匹配
         const e: Event | null = Event.fromName('全');
         ifError(e);
     }
@@ -176,7 +173,6 @@ class EventTest {
     test6(): void {
         this.init();
 
-        // 名称含正则特殊字符与替换特殊符号
         const e: Event | null = Event.fromName('a$b(c)*.日');
         ok(e);
 
@@ -184,7 +180,6 @@ class EventTest {
         ok(d);
         equal(d.toString(), '2026年6月18日');
 
-        // 更新后再次查找、删除后不可查
         EventManager.remove('a$b(c)*.日');
         ifError(Event.fromName('a$b(c)*.日'));
     }
@@ -193,10 +188,29 @@ class EventTest {
     test7(): void {
         this.init();
 
-        // 顺延导致日期越界时返回null
         const e: Event | null = Event.fromName('越界事件');
         ok(e);
         ifError(e.getSolarDay(2026));
+    }
+
+    @test
+    test8(): void {
+        this.init();
+
+        const name: string = 'a$&b$1';
+        let e: Event | null = Event.fromName(name);
+        ok(e);
+        equal(e.getSolarDay(2000)!.toString(), '2000年7月8日');
+
+        EventManager.update(name, Event.builder().solarDay(9, 10, 0).startYear(2001).build());
+
+        e = Event.fromName(name);
+        ok(e);
+        equal(e.getStartYear(), 2001);
+        equal(e.getSolarDay(2001)!.toString(), '2001年9月10日');
+
+        const events: Event[] = Event.all();
+        equal(events.filter((x: Event) => x.getName() === name).length, 1);
     }
 
 }
